@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# competition.launch.py
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import OpaqueFunction
@@ -38,12 +35,13 @@ def launch(context, *args, **kwargs):
     competition_mode = LaunchConfiguration('competition_mode').perform(context).lower() == 'true'
     extra_gz_args = LaunchConfiguration('extra_gz_args').perform(context)
     
-    # parse spawn_pose
+    # PEP: Added spawn pose arg
     spawn_pose_str = LaunchConfiguration('spawn_pose').perform(context)
     if spawn_pose_str:
         spawn_pose = [float(x) for x in spawn_pose_str.split(',')]
     else:
         spawn_pose = [-532.0, 162.0, 0.0, 0.0, 0.0, 1.0]
+    # PEP
 
     launch_processes = []
 
@@ -116,10 +114,12 @@ def generate_launch_description():
             'extra_gz_args',
             default_value='',
             description='Additional arguments to be passed to gz sim. '),
-        # Spawn pose argument
+        # PEP: Added spawn pose arg
         DeclareLaunchArgument(
             'spawn_pose',
             default_value='-532.0,162.0,0.0,0.0,0.0,1.0',
             description='Robot spawn pose as comma-separated values: x,y,z,roll,pitch,yaw'),
+        # PEP
         OpaqueFunction(function=launch),
+
     ])
