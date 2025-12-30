@@ -16,7 +16,7 @@
         <xacro:property name="clip_far" value="20.0"/>
         <xacro:property name="update_rate" value="30.0"/>
 
-        <!-- RGBD Camera linkcamera_link_optical -->
+        <!-- RGBD Camera link -->
         <link name="${namespace}/${name}_link">
             <visual>
                 <origin xyz="-0.033 0 0" rpy="0 0 ${pi/2}"/>
