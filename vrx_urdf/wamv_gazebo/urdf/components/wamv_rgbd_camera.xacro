@@ -16,7 +16,7 @@
         <xacro:property name="clip_far" value="20.0"/>
         <xacro:property name="update_rate" value="30.0"/>
 
-        <!-- RGBD Camera link -->
+        <!-- RGBD Camera linkcamera_link_optical -->
         <link name="${namespace}/${name}_link">
             <visual>
                 <origin xyz="-0.033 0 0" rpy="0 0 ${pi/2}"/>
@@ -158,7 +158,6 @@
 
             <sensor type="rgbd_camera" name="${name}_sensor">
                 <update_rate>${update_rate}</update_rate>
-                <topic>${name}</topic>
                 <xacro:if value="${visualize}">
                     <visualize>true</visualize>
                 </xacro:if>
@@ -186,9 +185,6 @@
                         <stddev>0.007</stddev>
                     </noise>
                 </camera>
-
-                <gz_frame_id>${namespace}/${name}_link_optical</gz_frame_id>
-                <always_on>true</always_on>
             </sensor>
         </gazebo>
     </xacro:macro>
