@@ -16,6 +16,11 @@
         <xacro:property name="clip_far" value="20.0"/>
         <xacro:property name="update_rate" value="30.0"/>
 
+        <!-- Computed intrinsics (workaround for Gazebo bug) -->
+        <xacro:property name="focal_length" value="${image_width / (2.0 * tan(horizontal_fov / 2.0))}"/>
+        <xacro:property name="cx" value="${image_width / 2.0}"/>
+        <xacro:property name="cy" value="${image_height / 2.0}"/>
+
         <!-- RGBD Camera link -->
         <link name="${namespace}/${name}_link">
             <visual>
@@ -169,6 +174,15 @@
                         <height>${image_height}</height>
                         <format>R8G8B8</format>
                     </image>
+                    <lens>
+                        <intrinsics>
+                            <fx>${focal_length}</fx>
+                            <fy>${focal_length}</fy>
+                            <cx>${cx}</cx>
+                            <cy>${cy}</cy>
+                            <s>0</s>
+                        </intrinsics>
+                    </lens>
                     <clip>
                         <near>${clip_near}</near>
                         <far>${clip_far}</far>
