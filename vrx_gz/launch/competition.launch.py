@@ -38,6 +38,14 @@ def launch(context, *args, **kwargs):
     robot_name = LaunchConfiguration('name').perform(context)
     model_type = LaunchConfiguration('model').perform(context)
 
+    # PEP: Added spawn pose arg
+    spawn_pose_str = LaunchConfiguration('spawn_pose').perform(context)
+    if spawn_pose_str:
+        spawn_pose = [float(x) for x in spawn_pose_str.split(',')]
+    else:
+        spawn_pose = [-532.0, 162.0, 0.0, 0.0, 0.0, 1.0]
+    # PEP
+
     launch_processes = []
 
     models = []
@@ -45,7 +53,7 @@ def launch(context, *args, **kwargs):
         with open(config_file, 'r') as stream:
             models = Model.FromConfig(stream)
     else:
-      m = Model(robot_name, model_type, [-532, 162, 0, 0, 0, 1])
+      m = Model(robot_name, model_type, spawn_pose)
       if robot_urdf and robot_urdf != '':
           m.set_urdf(robot_urdf)
       models.append(m)
@@ -117,5 +125,11 @@ def generate_launch_description():
             'model',
             default_value='wam-v',
             description='SDF model to spawn'),
+                    # PEP: Added spawn pose arg
+        DeclareLaunchArgument(
+            'spawn_pose',
+            default_value='-532.0,162.0,0.0,0.0,0.0,1.0',
+            description='Robot spawn pose as comma-separated values: x,y,z,roll,pitch,yaw'),
+        # PEP
         OpaqueFunction(function=launch),
     ])

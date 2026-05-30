@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:macro name="wamv_rgbd_camera" params="name x:=0.5 y:=0 z:=1.5 post_z_from:=1.2965 R:=0 P:=0 Y:=0 post_Y:=0 visualize:=False">
+        <!-- Define length variables for link positioning -->
+        <xacro:property name="platform_z" value="${post_z_from}"/>
+        <xacro:property name="post_to_post_arm_x" value="0.03"/>
+        <xacro:property name="post_arm_to_camera_x" value="0.02"/>
+        <xacro:property name="post_arm_to_camera_z" value="0.027"/>
+
+        <!-- DEFINED FOR ZED 2i -->
+        <xacro:property name="horizontal_fov" value="1.91986"/>
+        <!-- ~110 deg (note that vert = 78 deg when should be 70 -->
+        <xacro:property name="image_width" value="1280"/>
+        <xacro:property name="image_height" value="720"/>
+        <xacro:property name="clip_near" value="0.3"/>
+        <xacro:property name="clip_far" value="20.0"/>
+        <xacro:property name="update_rate" value="30.0"/>
+
+        <!-- Computed intrinsics (workaround for Gazebo bug) -->
+        <xacro:property name="focal_length" value="${image_width / (2.0 * tan(horizontal_fov / 2.0))}"/>
+        <xacro:property name="cx" value="${image_width / 2.0}"/>
+        <xacro:property name="cy" value="${image_height / 2.0}"/>
+
+        <!-- RGBD Camera link -->
+        <link name="${namespace}/${name}_link">
+            <visual>
+                <origin xyz="-0.033 0 0" rpy="0 0 ${pi/2}"/>
+                <geometry>
+                    <mesh filename="package://vrx_gazebo/models/mono_camera/mesh/mono_camera.dae"/>
+                </geometry>
+            </visual>
+            <collision name="${name}_lens_collision">
+                <origin xyz="0.018 0 0" rpy="0 ${pi/2} 0"/>
+                <geometry>
+                    <cylinder radius="0.015" length="0.042"/>
+                </geometry>
+            </collision>
+            <collision name="${name}_box_collision">
+                <origin xyz="-0.0205 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="0.036 0.03 0.03"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="0.3"/>
+                <inertia
+                    ixx="0.0000450"
+                    iyy="0.0001746"
+                    izz="0.0001746"
+                    ixy="0"
+                    ixz="0"
+                    iyz="0"/>
+            </inertial>
+        </link>
+
+        <!-- Optical frame (x-right, y-down, z-forward) -->
+        <link name="${namespace}/${name}_link_optical"/>
+
+        <!-- Post properties -->
+        <xacro:property name="post_length" value="${z-platform_z-post_arm_to_camera_z}"/>
+        <xacro:property name="post_mass_per_meter" value="0.9"/>
+        <xacro:property name="post_mass" value="${post_mass_per_meter * post_length}"/>
+        <xacro:property name="post_radius" value="0.0076"/>
+
+        <!-- Sensor post -->
+        <link name="${namespace}/${name}_post_link">
+            <visual>
+                <geometry>
+                    <cylinder radius="${post_radius}" length="${post_length}"/>
+                </geometry>
+                <material name="${name}_post_material">
+                    <color rgba="0.0 0.0 0.0 1.0"/>
+                </material>
+            </visual>
+            <collision name="${name}_post_collision">
+                <geometry>
+                    <cylinder radius="${post_radius}" length="${post_length}"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="${post_mass}"/>
+                <inertia
+                    ixx="${(post_mass/12) * (3*post_radius*post_radius + post_length*post_length)}"
+                    iyy="${(post_mass/12) * (3*post_radius*post_radius + post_length*post_length)}"
+                    izz="${(post_mass/2) * (post_radius*post_radius)}"
+                    ixy="0"
+                    ixz="0"
+                    iyz="0"/>
+            </inertial>
+        </link>
+
+        <!-- Sensor post arm -->
+        <link name="${namespace}/${name}_post_arm_link">
+            <visual name="${name}_post_arm_visual">
+                <origin xyz="-0.038 0 -0.003" rpy="${radians(-60)} 0 ${-pi/2}"/>
+                <geometry>
+                    <mesh filename="package://vrx_gazebo/models/sensor_post/mesh/sensor_post_arm.dae"/>
+                </geometry>
+            </visual>
+            <collision name="${name}_post_arm_collision">
+                <origin xyz="0 0 0" rpy="${radians(-60)-pi/20} 0 ${-pi/2}"/>
+                <geometry>
+                    <cylinder radius="0.008" length="0.065"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <origin xyz="0 0 0" rpy="${radians(-60)-pi/20} 0 ${-pi/2}"/>
+                <mass value="0.1"/>
+                <inertia
+                    ixx="0.00003680833"
+                    iyy="0.00003680833"
+                    izz="0.00000320000"
+                    ixy="0"
+                    ixz="0"
+                    iyz="0"/>
+            </inertial>
+        </link>
+
+        <!-- Joints -->
+        <xacro:property name="post_z" value="${platform_z+post_length/2}"/>
+        <xacro:property name="post_to_camera_x" value="${post_to_post_arm_x+post_arm_to_camera_x}"/>
+
+        <joint name="${namespace}/base_to_${name}_post_joint" type="fixed">
+            <origin xyz="${x-(post_to_camera_x)*cos(post_Y)} ${y-(post_to_camera_x)*sin(post_Y)} ${post_z}" rpy="0 0 ${post_Y}"/>
+            <parent link="${namespace}/base_link"/>
+            <child link="${namespace}/${name}_post_link"/>
+        </joint>
+
+        <joint name="${namespace}/${name}_post_to_${name}_post_arm_joint" type="fixed">
+            <origin xyz="${post_to_post_arm_x} 0 ${z-post_z-post_arm_to_camera_z}" rpy="0 0 0"/>
+            <parent link="${namespace}/${name}_post_link"/>
+            <child link="${namespace}/${name}_post_arm_link"/>
+        </joint>
+
+        <joint name="${namespace}/${name}_post_arm_to_${name}_joint" type="fixed">
+            <origin xyz="${post_arm_to_camera_x} 0 ${post_arm_to_camera_z}" rpy="${R} ${P} ${Y-post_Y}"/>
+            <parent link="${namespace}/${name}_post_arm_link"/>
+            <child link="${namespace}/${name}_link"/>
+        </joint>
+
+        <joint name="${namespace}/${name}_to_${name}_link_optical_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+            <parent link="${namespace}/${name}_link"/>
+            <child link="${namespace}/${name}_link_optical"/>
+        </joint>
+
+        <!-- Gazebo Garden RGBD Camera -->
+        <gazebo reference="${namespace}/${name}_link">
+            <visual>
+                <material>
+                    <diffuse>1.0 1.0 1.0</diffuse>
+                    <specular>1.0 1.0 1.0</specular>
+                    <pbr>
+                        <metal>
+                            <albedo_map>model://vrx_gazebo/models/mono_camera/mesh/mono_camera_Albedo.png</albedo_map>
+                            <normal_map>model://vrx_gazebo/models/mono_camera/mesh/mono_camera_Normal.png</normal_map>
+                            <roughness_map>model://vrx_gazebo/models/mono_camera/mesh/mono_camera_Roughness.png</roughness_map>
+                            <metalness_map>model://vrx_gazebo/models/mono_camera/mesh/mono_camera_Metalness.png</metalness_map>
+                        </metal>
+                    </pbr>
+                </material>
+            </visual>
+
+            <sensor type="rgbd_camera" name="${name}_sensor">
+                <update_rate>${update_rate}</update_rate>
+                <xacro:if value="${visualize}">
+                    <visualize>true</visualize>
+                </xacro:if>
+
+                <camera name="${name}_camera">
+                    <horizontal_fov>${horizontal_fov}</horizontal_fov>
+                    <image>
+                        <width>${image_width}</width>
+                        <height>${image_height}</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <lens>
+                        <intrinsics>
+                            <fx>${focal_length}</fx>
+                            <fy>${focal_length}</fy>
+                            <cx>${cx}</cx>
+                            <cy>${cy}</cy>
+                            <s>0</s>
+                        </intrinsics>
+                    </lens>
+                    <clip>
+                        <near>${clip_near}</near>
+                        <far>${clip_far}</far>
+                    </clip>
+                    <depth_camera>
+                        <clip>
+                            <near>${clip_near}</near>
+                            <far>${clip_far}</far>
+                        </clip>
+                    </depth_camera>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.007</stddev>
+                    </noise>
+                </camera>
+            </sensor>
+        </gazebo>
+    </xacro:macro>
+</robot>

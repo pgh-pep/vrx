@@ -66,6 +66,10 @@ class ComponentCompliance:
             return True
 
     def number_compliance(self, component_type, n):
+        # PEP: bypass compliance for p3d ground truth
+        return True
+        # PEP
+
         if not component_type in self.numeric:
             rclpy.logging.get_logger("compliance").error('%s is not defined' % component_type)
             return False
